@@ -27,7 +27,7 @@ async function main() {
 
   // 创建工具分发器
   const dispatcher = new ToolDispatcher()
-  const tools = getDefaultTools()
+  const tools = getDefaultTools(config.data_dir)
   dispatcher.registerAll(tools)
 
   console.log(`🔧 Loaded ${tools.length} tools:`)

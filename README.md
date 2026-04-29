@@ -8,14 +8,16 @@
 
 ## ✨ 特性
 
-- 🎯 **极简架构** - 核心代码 <5K 行，易于理解和扩展
+- 🎯 **极简架构** - 核心代码 <3K 行，易于理解和扩展
 - 🧠 **自进化机制** - 技能自动沉淀与复用（L3 技能库）
 - 💾 **分层记忆** - L0-L4 记忆层级，SQLite FTS5 全文搜索
-- 🔧 **最小工具集** - 9 个原子工具，覆盖常见场景
+- 🔧 **完整工具集** - 9 个原子工具，覆盖常见场景
 - 🔒 **安全加固** - VM2 沙箱、信任边界标记、Zod 校验
 - 🌊 **流式执行** - AsyncGenerator 实时反馈
 - 🎭 **浏览器自动化** - Playwright 替代 Selenium
 - 📦 **灵活部署** - CLI / Docker / Serverless
+- 🔄 **回调系统** - 工具执行前后、轮次结束回调
+- 💾 **Session 管理** - 会话持久化、历史压缩
 
 ## 🚀 快速开始
 
@@ -54,9 +56,78 @@ pnpm start
 
 ## 📖 文档
 
+- [开发指南](./docs/development.md)
 - [架构设计](./docs/architecture.md)
 - [API 参考](./docs/api-reference.md)
 - [迁移指南](./docs/migration-guide.md)（从 Python 版本）
+
+## 🎯 使用示例
+
+### 基础使用
+
+```typescript
+import { 
+  LLMClient, 
+  ToolDispatcher, 
+  agentRunnerLoop, 
+  getDefaultTools, 
+  loadConfig, 
+  getApiKey 
+} from 'generic-agent-ts'
+
+const config = loadConfig()
+const client = new LLMClient({
+  provider: config.provider,
+  model: config.model,
+  apiKey: getApiKey(config.provider),
+})
+
+const dispatcher = new ToolDispatcher()
+dispatcher.registerAll(getDefaultTools(config.data_dir))
+
+const stream = agentRunnerLoop(client, dispatcher, '你的问题', {
+  maxTurns: config.max_turns,
+  systemPrompt: config.system_prompt,
+  verbose: true,
+})
+
+for await (const chunk of stream) {
+  if (chunk.type === 'text') {
+    process.stdout.write(chunk.content)
+  }
+}
+```
+
+### 使用回调系统
+
+```typescript
+import { LoggingCallbacks } from 'generic-agent-ts'
+
+const callbacks = new LoggingCallbacks()
+
+const stream = agentRunnerLoop(client, dispatcher, userInput, {
+  maxTurns: 20,
+  systemPrompt: '...',
+  callbacks, // 添加回调
+})
+```
+
+### 使用 Session 管理
+
+```typescript
+import { SessionManager } from 'generic-agent-ts'
+
+const sessionManager = new SessionManager('./.generic-agent')
+const session = await sessionManager.load('my-session')
+
+const stream = agentRunnerLoop(client, dispatcher, userInput, {
+  maxTurns: 20,
+  systemPrompt: '...',
+  session, // 添加 Session
+})
+
+await session.save() // 保存会话
+```
 
 ## 🛠️ 技术栈
 
@@ -67,9 +138,23 @@ pnpm start
 | LLM 调用 | Vercel AI SDK |
 | 浏览器 | Playwright |
 | 参数校验 | Zod |
-| 记忆存储 | SQLite + FTS5 |
+| 记忆存储 | SQLite + FTS5 (better-sqlite3) |
 | 沙箱执行 | VM2 |
 | 测试框架 | Vitest |
+
+## 🔧 已实现工具（9/9）
+
+| 工具 | 说明 | 状态 |
+|------|------|------|
+| `file_read` | 读取文件内容 | ✅ |
+| `file_write` | 写入文件内容 | ✅ |
+| `ask_user` | 询问用户获取输入 | ✅ |
+| `code_run` | 沙箱代码执行 (VM2) | ✅ |
+| `web_scan` | 网页内容抓取 | ✅ |
+| `web_control` | 浏览器控制 (Playwright) | ✅ |
+| `mem_search` | 记忆搜索 (FTS5) | ✅ |
+| `mem_write` | 记忆写入 | ✅ |
+| `reflect` | 反思总结 | ✅ |
 
 ## 🏗️ 项目结构
 

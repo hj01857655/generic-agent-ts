@@ -14,6 +14,9 @@ export {
   type AgentCallbacks,
 } from './core/callbacks'
 
+// 记忆系统
+export { MemoryStorage } from './memory/storage'
+
 // 类型定义
 export type {
   Message,
@@ -29,6 +32,7 @@ export type {
   AgentResult,
   ExitReason,
   MemoryEntry,
+  MemoryLayer,
   Skill,
 } from './core/types'
 
@@ -41,7 +45,19 @@ export {
 } from './core/types'
 
 // 工具
-export { BaseTool, getDefaultTools } from './tools'
+export {
+  BaseTool,
+  getDefaultTools,
+  FileReadTool,
+  FileWriteTool,
+  AskUserTool,
+  CodeRunTool,
+  WebScanTool,
+  WebControlTool,
+  MemSearchTool,
+  MemWriteTool,
+  ReflectTool,
+} from './tools'
 
 // 工具函数
 export { loadConfig, getApiKey } from './utils/config'
