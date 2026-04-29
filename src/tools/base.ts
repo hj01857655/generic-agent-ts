@@ -57,6 +57,7 @@ export abstract class BaseTool<T extends z.ZodObject<any> = z.ZodObject<any>> {
           next_prompt: `工具执行失败: ${error instanceof Error ? error.message : String(error)}`,
           trust_level: this.defaultTrustLevel,
           is_success: false,
+          should_exit: false,
           error: error instanceof Error ? error.message : String(error),
         }
       }

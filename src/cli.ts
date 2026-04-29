@@ -45,7 +45,7 @@ async function main() {
     const stream = agentRunnerLoop(client, dispatcher, userInput, {
       maxTurns: config.max_turns,
       systemPrompt: config.system_prompt,
-      streaming: true,
+      verbose: true,
     })
 
     // 流式输出

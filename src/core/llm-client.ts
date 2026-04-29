@@ -66,11 +66,12 @@ export class LLMClient {
       }
 
       // 等待完成
-      const response = await result.response
+      await result.response
 
       // 提取工具调用
       if (result.toolCalls) {
-        for (const toolCall of result.toolCalls) {
+        const calls = await result.toolCalls
+        for (const toolCall of calls) {
           const tc: ToolCall = {
             id: toolCall.toolCallId,
             name: toolCall.toolName,
@@ -85,7 +86,7 @@ export class LLMClient {
       const llmResponse: LLMResponse = {
         content: fullText,
         tool_calls: toolCalls,
-        stop_reason: this.mapStopReason(response.finishReason),
+        stop_reason: 'end_turn',
       }
 
       yield { type: 'done', response: llmResponse }
@@ -105,15 +106,10 @@ export class LLMClient {
   private getModel() {
     switch (this.config.provider) {
       case 'claude':
-        return anthropic(this.config.model, {
-          apiKey: this.config.apiKey,
-        })
+        return anthropic(this.config.model)
       case 'openai':
-        return openai(this.config.model, {
-          apiKey: this.config.apiKey,
-        })
+        return openai(this.config.model as any)
       case 'ollama':
-        // TODO: 实现 Ollama 支持
         throw new LLMError('Ollama provider not implemented yet')
       default:
         throw new LLMError(`Unknown provider: ${this.config.provider}`)
@@ -158,23 +154,5 @@ export class LLMClient {
     }
 
     return coreTools
-  }
-
-  /**
-   * 映射停止原因
-   */
-  private mapStopReason(
-    reason: string | undefined
-  ): 'end_turn' | 'max_tokens' | 'tool_use' | null {
-    switch (reason) {
-      case 'stop':
-        return 'end_turn'
-      case 'length':
-        return 'max_tokens'
-      case 'tool-calls':
-        return 'tool_use'
-      default:
-        return null
-    }
   }
 }

@@ -45,7 +45,7 @@ export class ToolDispatcher {
 
     try {
       const handler = tool.getHandler()
-      const outcome = await handler(args)
+      const outcome = await handler(args as any)
       return outcome
     } catch (error) {
       throw new ToolError(
