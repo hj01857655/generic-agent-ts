@@ -36,6 +36,7 @@
     "better-sqlite3": "^11.7.0",
     "eventsource-parser": "^3.0.0",
     "playwright": "^1.49.1",
+    "vm2": "^3.9.19",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
   },
