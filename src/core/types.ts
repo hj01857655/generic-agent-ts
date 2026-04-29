@@ -96,13 +96,15 @@ export type StreamChunk =
 // ============================================================================
 
 /**
- * 工具执行结果
+ * 工具执行结果（对应 Python 的 StepOutcome）
  */
 export interface ToolOutcome {
   /** 返回数据 */
   data: unknown
-  /** 下一轮提示词 */
-  next_prompt: string
+  /** 下一轮提示词（null 表示任务完成） */
+  next_prompt: string | null
+  /** 是否应该退出 Agent 循环 */
+  should_exit: boolean
   /** 信任级别 */
   trust_level: TrustLevel
   /** 是否成功 */
@@ -142,12 +144,14 @@ export interface AgentConfig {
   model: string
   /** 最大轮次 */
   max_turns: number
-  /** 上下文窗口大小 */
+  /** 上下文窗口大小（字符数） */
   context_window: number
   /** 系统提示词 */
   system_prompt: string
   /** 数据目录 */
   data_dir: string
+  /** 是否详细输出 */
+  verbose?: boolean
 }
 
 /**
@@ -157,6 +161,8 @@ export type ExitReason =
   | 'end_turn' // LLM 主动结束
   | 'max_turns' // 达到最大轮次
   | 'user_interrupt' // 用户中断
+  | 'task_done' // 任务完成（next_prompt 为 null）
+  | 'should_exit' // 工具要求退出
   | 'error' // 错误
 
 /**

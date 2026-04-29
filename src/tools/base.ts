@@ -75,14 +75,16 @@ export abstract class BaseTool<T extends z.ZodObject<any> = z.ZodObject<any>> {
    */
   protected success(
     data: unknown,
-    nextPrompt: string,
-    trustLevel: TrustLevel = this.defaultTrustLevel
+    nextPrompt: string | null,
+    trustLevel: TrustLevel = this.defaultTrustLevel,
+    shouldExit: boolean = false
   ): ToolOutcome {
     return {
       data,
       next_prompt: nextPrompt,
       trust_level: trustLevel,
       is_success: true,
+      should_exit: shouldExit,
     }
   }
 
@@ -98,7 +100,41 @@ export abstract class BaseTool<T extends z.ZodObject<any> = z.ZodObject<any>> {
       next_prompt: `工具执行失败: ${error}`,
       trust_level: trustLevel,
       is_success: false,
+      should_exit: false,
       error,
+    }
+  }
+
+  /**
+   * 创建任务完成结果（next_prompt = null）
+   */
+  protected done(
+    data: unknown,
+    trustLevel: TrustLevel = this.defaultTrustLevel
+  ): ToolOutcome {
+    return {
+      data,
+      next_prompt: null,
+      trust_level: trustLevel,
+      is_success: true,
+      should_exit: false,
+    }
+  }
+
+  /**
+   * 创建退出结果（should_exit = true）
+   */
+  protected exit(
+    data: unknown,
+    message: string = '用户要求退出',
+    trustLevel: TrustLevel = this.defaultTrustLevel
+  ): ToolOutcome {
+    return {
+      data,
+      next_prompt: message,
+      trust_level: trustLevel,
+      is_success: true,
+      should_exit: true,
     }
   }
 }
