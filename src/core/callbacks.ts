@@ -65,42 +65,42 @@ export interface AgentCallbacks {
  */
 export class DefaultCallbacks implements AgentCallbacks {
   async onToolBefore(
-    toolName: string,
-    args: Record<string, unknown>,
-    response: LLMResponse
+    _toolName: string,
+    _args: Record<string, unknown>,
+    _response: LLMResponse
   ): Promise<void> {
     // 默认不做任何操作
   }
 
   async onToolAfter(
-    toolName: string,
-    args: Record<string, unknown>,
-    response: LLMResponse,
-    outcome: ToolOutcome
+    _toolName: string,
+    _args: Record<string, unknown>,
+    _response: LLMResponse,
+    _outcome: ToolOutcome
   ): Promise<void> {
     // 默认不做任何操作
   }
 
   async onTurnEnd(
-    response: LLMResponse,
-    toolCalls: ToolCall[],
-    toolResults: ToolResult[],
-    turn: number,
+    _response: LLMResponse,
+    _toolCalls: ToolCall[],
+    _toolResults: ToolResult[],
+    _turn: number,
     nextPrompt: string,
-    exitReason: Record<string, unknown>
+    _exitReason: Record<string, unknown>
   ): Promise<string | null> {
     // 默认返回原始 next_prompt
     return nextPrompt
   }
 
-  async onStart(userInput: string): Promise<void> {
+  async onStart(_userInput: string): Promise<void> {
     // 默认不做任何操作
   }
 
   async onEnd(
-    exitReason: string,
-    totalTurns: number,
-    toolCallsCount: number
+    _exitReason: string,
+    _totalTurns: number,
+    _toolCallsCount: number
   ): Promise<void> {
     // 默认不做任何操作
   }
@@ -112,24 +112,24 @@ export class DefaultCallbacks implements AgentCallbacks {
 export class LoggingCallbacks extends DefaultCallbacks {
   override async onToolBefore(
     toolName: string,
-    args: Record<string, unknown>
+    _args: Record<string, unknown>
   ): Promise<void> {
     console.log(`[Callback] Tool before: ${toolName}`)
   }
 
   override async onToolAfter(
     toolName: string,
-    args: Record<string, unknown>,
-    response: LLMResponse,
+    _args: Record<string, unknown>,
+    _response: LLMResponse,
     outcome: ToolOutcome
   ): Promise<void> {
     console.log(`[Callback] Tool after: ${toolName}, success: ${outcome.is_success}`)
   }
 
   override async onTurnEnd(
-    response: LLMResponse,
+    _response: LLMResponse,
     toolCalls: ToolCall[],
-    toolResults: ToolResult[],
+    _toolResults: ToolResult[],
     turn: number,
     nextPrompt: string
   ): Promise<string> {

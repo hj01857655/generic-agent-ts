@@ -101,7 +101,7 @@ export class StartLongTermUpdateTool extends BaseTool<typeof startLongTermUpdate
   readonly parameters = startLongTermUpdateSchema
   protected readonly defaultTrustLevel = TrustLevel.TOOL_SAFE
 
-  async execute(args: z.infer<typeof startLongTermUpdateSchema>): Promise<ToolOutcome> {
+  async execute(_args: z.infer<typeof startLongTermUpdateSchema>): Promise<ToolOutcome> {
     const prompt = `### [总结提炼经验] 既然你觉得当前任务有重要信息需要记忆，请提取最近一次任务中【事实验证成功且长期有效】的环境事实、用户偏好、重要步骤，更新记忆。
 本工具是标记开启结算过程，若已在更新记忆过程或没有值得记忆的点，忽略本次调用。
 **如果没有经验证的，未来能用上的信息，忽略本次调用！**

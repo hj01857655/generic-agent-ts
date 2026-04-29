@@ -12,7 +12,7 @@ import type { WorkingMemory } from './agent-loop'
  * 
  * 对应 Python 的 enter_plan_mode
  */
-export function enterPlanMode(working: WorkingMemory, planPath: string, maxTurns: number = 100): string {
+export function enterPlanMode(working: WorkingMemory, planPath: string): string {
   working.in_plan_mode = planPath
   console.log(`[Info] Entered plan mode with plan file: ${planPath}`)
   return planPath

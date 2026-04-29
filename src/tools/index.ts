@@ -15,8 +15,6 @@ export { MemSearchTool } from './mem-search'
 export { MemWriteTool } from './mem-write'
 export { ReflectTool } from './reflect'
 export { UpdateWorkingCheckpointTool, StartLongTermUpdateTool } from './working-memory'
-export { NoToolTool } from './no-tool'
-export type { WorkingMemory } from './working-memory'
 
 import { FileReadTool } from './file-read'
 import { FileWriteTool } from './file-write'
@@ -30,18 +28,12 @@ import { MemSearchTool } from './mem-search'
 import { MemWriteTool } from './mem-write'
 import { ReflectTool } from './reflect'
 import { UpdateWorkingCheckpointTool, StartLongTermUpdateTool } from './working-memory'
-import { NoToolTool } from './no-tool'
 import type { BaseTool } from './base'
-import type { WorkingMemory } from './working-memory'
 
 /**
  * 获取所有默认工具
  */
-export function getDefaultTools(
-  dataDir: string = './.generic-agent',
-  working: WorkingMemory = {},
-  memoryDir: string = './memory'
-): BaseTool[] {
+export function getDefaultTools(dataDir: string = './.generic-agent'): BaseTool<any>[] {
   return [
     new FileReadTool(),
     new FileWriteTool(),
@@ -54,8 +46,7 @@ export function getDefaultTools(
     new MemSearchTool(dataDir),
     new MemWriteTool(dataDir),
     new ReflectTool(),
-    new UpdateWorkingCheckpointTool(working),
-    new StartLongTermUpdateTool(memoryDir),
-    // NoToolTool 不在这里注册，由 Agent Loop 特殊处理
+    new UpdateWorkingCheckpointTool(),
+    new StartLongTermUpdateTool(),
   ]
 }

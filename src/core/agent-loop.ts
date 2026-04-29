@@ -20,7 +20,6 @@ import { AgentError } from './types'
 import { DefaultCallbacks } from './callbacks'
 import { smartFormat, getGlobalMemory, consumeFile } from '../utils/helpers'
 import * as fs from 'fs/promises'
-import * as path from 'path'
 
 /**
  * 工作记忆状态
@@ -115,7 +114,6 @@ export async function* agentRunnerLoop(
   let totalToolCalls = 0
   let exitReason: ExitReason = 'end_turn'
   let finalMessage = ''
-  let lastResponse: LLMResponse | null = null
   const verbose = config.verbose ?? true
 
   try {
@@ -153,7 +151,6 @@ export async function* agentRunnerLoop(
           toolCalls.push(chunk.tool_call)
         } else if (chunk.type === 'done') {
           const { response } = chunk
-          lastResponse = response
 
           if (verbose) {
             yield { type: 'text', content: '\n\n' }
