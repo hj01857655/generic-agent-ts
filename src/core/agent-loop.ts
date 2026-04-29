@@ -4,14 +4,18 @@
 
 import type { LLMClient } from './llm-client'
 import type { ToolDispatcher } from './tool-dispatcher'
+import type { AgentCallbacks } from './callbacks'
+import type { Session } from './session'
 import type {
   Message,
   StreamChunk,
   ExitReason,
   AgentResult,
   ToolResult,
+  LLMResponse,
 } from './types'
 import { AgentError } from './types'
+import { DefaultCallbacks } from './callbacks'
 
 /**
  * Agent 循环配置
@@ -25,6 +29,10 @@ export interface AgentLoopConfig {
   verbose?: boolean
   /** 上下文窗口大小（字符数） */
   contextWindow?: number
+  /** 回调函数 */
+  callbacks?: AgentCallbacks
+  /** Session（可选，用于持久化） */
+  session?: Session
 }
 
 /**
@@ -38,27 +46,58 @@ export async function* agentRunnerLoop(
   userInput: string,
   config: AgentLoopConfig
 ): AsyncGenerator<StreamChunk, AgentResult> {
+  // 初始化回调
+  const callbacks = config.callbacks || new DefaultCallbacks()
+
+  // 触发启动回调
+  await callbacks.onStart?.(userInput)
+
   // 初始化消息历史
-  const messages: Message[] = [
-    {
-      role: 'system',
-      content: config.systemPrompt,
-    },
-    {
-      role: 'user',
-      content: userInput,
-    },
-  ]
+  let messages: Message[]
+
+  if (config.session) {
+    // 使用 Session 管理消息
+    messages = config.session.getMessages()
+    
+    // 如果是新 Session，添加系统消息和用户输入
+    if (messages.length === 0) {
+      messages.push({
+        role: 'system',
+        content: config.systemPrompt,
+      })
+      messages.push({
+        role: 'user',
+        content: userInput,
+      })
+      config.session.addMessages(messages)
+    }
+  } else {
+    // 不使用 Session，直接创建消息数组
+    messages = [
+      {
+        role: 'system',
+        content: config.systemPrompt,
+      },
+      {
+        role: 'user',
+        content: userInput,
+      },
+    ]
+  }
 
   let turn = 0
   let totalToolCalls = 0
   let exitReason: ExitReason = 'end_turn'
   let finalMessage = ''
+  let lastResponse: LLMResponse | null = null
   const verbose = config.verbose ?? true
 
   try {
     while (turn < config.maxTurns) {
       turn++
+
+      // Session 轮次计数
+      config.session?.incrementTurn()
 
       // 输出轮次信息
       const md = verbose ? '**' : ''
@@ -88,16 +127,19 @@ export async function* agentRunnerLoop(
           toolCalls.push(chunk.tool_call)
         } else if (chunk.type === 'done') {
           const { response } = chunk
+          lastResponse = response
 
           if (verbose) {
             yield { type: 'text', content: '\n\n' }
           }
 
           // 添加 assistant 消息到历史
-          messages.push({
+          const assistantMsg: Message = {
             role: 'assistant',
             content: response.content,
-          })
+          }
+          messages.push(assistantMsg)
+          config.session?.addMessage(assistantMsg)
 
           finalMessage = response.content
 
@@ -136,6 +178,9 @@ export async function* agentRunnerLoop(
             }
 
             try {
+              // 工具执行前回调
+              await callbacks.onToolBefore?.(toolName, args, response)
+
               // 执行工具
               if (verbose) {
                 yield { type: 'text', content: '`````\n' }
@@ -146,6 +191,9 @@ export async function* agentRunnerLoop(
               if (verbose) {
                 yield { type: 'text', content: '`````\n' }
               }
+
+              // 工具执行后回调
+              await callbacks.onToolAfter?.(toolName, args, response, outcome)
 
               // 检查退出条件
               if (outcome.should_exit) {
@@ -182,6 +230,19 @@ export async function* agentRunnerLoop(
 
           // 检查是否应该退出
           if (shouldBreak || taskDone || nextPrompts.size === 0) {
+            // 触发轮次结束回调
+            await callbacks.onTurnEnd?.(
+              response,
+              actualToolCalls,
+              toolResults,
+              turn,
+              '',
+              { result: exitReason }
+            )
+
+            // 触发结束回调
+            await callbacks.onEnd?.(exitReason, turn, totalToolCalls)
+
             return {
               exit_reason: exitReason,
               final_message: finalMessage,
@@ -191,16 +252,38 @@ export async function* agentRunnerLoop(
           }
 
           // 构建下一轮消息
-          const nextPrompt = Array.from(nextPrompts).join('\n')
-          messages.push({
+          let nextPrompt = Array.from(nextPrompts).join('\n')
+
+          // 触发轮次结束回调（可能修改 next_prompt）
+          const modifiedPrompt = await callbacks.onTurnEnd?.(
+            response,
+            actualToolCalls,
+            toolResults,
+            turn,
+            nextPrompt,
+            {}
+          )
+
+          if (modifiedPrompt !== null && modifiedPrompt !== undefined) {
+            nextPrompt = modifiedPrompt
+          }
+
+          const userMsg: Message = {
             role: 'user',
             content: nextPrompt,
             tool_results: toolResults,
-          })
+          }
+          messages.push(userMsg)
+          config.session?.addMessage(userMsg)
 
           // 修剪历史消息（避免上下文过大）
           if (config.contextWindow) {
-            trimMessagesHistory(messages, config.contextWindow)
+            if (config.session) {
+              config.session.trimHistory(config.contextWindow)
+              messages = config.session.getMessages()
+            } else {
+              trimMessagesHistory(messages, config.contextWindow)
+            }
           }
         }
       }
@@ -208,6 +291,10 @@ export async function* agentRunnerLoop(
 
     // 达到最大轮次
     exitReason = 'max_turns'
+
+    // 触发结束回调
+    await callbacks.onEnd?.(exitReason, turn, totalToolCalls)
+
     return {
       exit_reason: exitReason,
       final_message: finalMessage,
@@ -217,6 +304,10 @@ export async function* agentRunnerLoop(
   } catch (error) {
     // 错误退出
     exitReason = 'error'
+
+    // 触发结束回调
+    await callbacks.onEnd?.(exitReason, turn, totalToolCalls)
+
     throw new AgentError(
       `Agent loop failed: ${error instanceof Error ? error.message : String(error)}`,
       'AGENT_LOOP_ERROR',

@@ -7,6 +7,12 @@
 export { LLMClient } from './core/llm-client'
 export { ToolDispatcher } from './core/tool-dispatcher'
 export { agentRunnerLoop } from './core/agent-loop'
+export { Session, SessionManager } from './core/session'
+export {
+  DefaultCallbacks,
+  LoggingCallbacks,
+  type AgentCallbacks,
+} from './core/callbacks'
 
 // 类型定义
 export type {
